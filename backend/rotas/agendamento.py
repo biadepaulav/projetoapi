@@ -1,0 +1,92 @@
+from fastapi import APIRouter
+from pydantic import BaseModel
+from typing import Optional
+from database import conectar
+
+router = APIRouter()
+
+# Modelo de dados — define os campos que o agendamento deve ter
+class Agendamento(BaseModel):
+    idcliente: int                          # obrigatório — aponta para a tabela cliente
+    idtatuador: int                         # obrigatório — aponta para a tabela tatuador
+    dataagendamento: str                    # obrigatório
+    horaagendamento: str                    # obrigatório
+    descricaotatuagem: Optional[str] = None # opcional
+    valortatuagem: Optional[float] = None   # opcional
+    status: Optional[str] = None            # só é usado ao atualizar (ver Parte 7)
+
+    @router.post("/agendamentos")
+def criar_agendamento(agendamento: Agendamento):
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute(
+        """INSERT INTO agendamento (idcliente, idtatuador, dataagendamento, horaagendamento, descricaotatuagem, valortatuagem)
+           VALUES (%s, %s, %s, %s, %s, %s)""",
+        (agendamento.idcliente, agendamento.idtatuador, agendamento.dataagendamento,
+         agendamento.horaagendamento, agendamento.descricaotatuagem, agendamento.valortatuagem)
+    )
+    # repare que a coluna status nem aparece aqui — o banco aplica sozinho
+    # o DEFAULT 'pendente' que já foi definido lá na Aula 2
+    conn.commit()
+    conn.close()
+    return {"mensagem": "Agendamento cadastrado com sucesso"}
+
+    {
+  "idcliente": 1,
+  "idtatuador": 1,
+  "dataagendamento": "2026-10-20",
+  "horaagendamento": "15:30",
+  "descricaotatuagem": "Fênix nas costas",
+  "valortatuagem": 450.00
+}
+
+# GET /agendamentos — lista todos os agendamentos, já com nome do cliente e do tatuador
+@router.get("/agendamentos")
+def listar_agendamentos():
+    conn = conectar()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT agendamento.*, cliente.nome AS cliente, tatuador.nometatuador AS tatuador
+        FROM agendamento
+        JOIN cliente  ON agendamento.idcliente  = cliente.idcliente
+        JOIN tatuador ON agendamento.idtatuador = tatuador.idtatuador
+    """)
+    agendamentos = cursor.fetchall()
+    conn.close()
+
+    # o mysql-connector-python devolve colunas TIME como um "timedelta" (tempo decorrido),
+    # não como texto — por isso convertemos aqui pra "HH:MM:SS" antes de mandar pro frontend
+    for a in agendamentos:
+        total_segundos = int(a["horaagendamento"].total_seconds())
+        horas, resto = divmod(total_segundos, 3600)
+        minutos, segundos = divmod(resto, 60)
+        a["horaagendamento"] = f"{horas:02d}:{minutos:02d}:{segundos:02d}"
+
+    return agendamentos
+
+    @router.put("/agendamentos/{id}")
+def atualizar_agendamento(id: int, agendamento: Agendamento):
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute(
+        """UPDATE agendamento
+           SET idcliente=%s, idtatuador=%s, dataagendamento=%s, horaagendamento=%s,
+               descricaotatuagem=%s, valortatuagem=%s, status=%s
+           WHERE idagendamento=%s""",
+        (agendamento.idcliente, agendamento.idtatuador, agendamento.dataagendamento,
+         agendamento.horaagendamento, agendamento.descricaotatuagem,
+         agendamento.valortatuagem, agendamento.status, id)
+    )
+    conn.commit()
+    conn.close()
+    return {"mensagem": "Agendamento atualizado com sucesso"}
+
+# DELETE /agendamentos/{id} — vai deletar um agendamento 
+@router.delete("/agendamentos/{id}")
+def deletar_agendamento(id: int):
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM agendamento WHERE idagendamento = %s", (id,))
+    conn.commit()
+    conn.close()
+    return {"mensagem": "Agendamento deletado com sucesso"}
