@@ -64,22 +64,20 @@ def listar_agendamentos():
 
     return agendamentos
 
-    @router.put("/agendamentos/{id}")
-def atualizar_agendamento(id: int, agendamento: Agendamento):
+@router.post("/agendamentos")
+def criar_agendamento(agendamento: Agendamento):
     conn = conectar()
     cursor = conn.cursor()
     cursor.execute(
-        """UPDATE agendamento
-           SET idcliente=%s, idtatuador=%s, dataagendamento=%s, horaagendamento=%s,
-               descricaotatuagem=%s, valortatuagem=%s, status=%s
-           WHERE idagendamento=%s""",
+        """INSERT INTO agendamento (idcliente, idtatuador, dataagendamento, horaagendamento, descricaotatuagem, valortatuagem)
+           VALUES (%s, %s, %s, %s, %s, %s)""",
         (agendamento.idcliente, agendamento.idtatuador, agendamento.dataagendamento,
-         agendamento.horaagendamento, agendamento.descricaotatuagem,
-         agendamento.valortatuagem, agendamento.status, id)
+         agendamento.horaagendamento, agendamento.descricaotatuagem, agendamento.valortatuagem)
     )
+    novo_id = cursor.lastrowid   # o ID que o MySQL gerou sozinho pro novo agendamento (AUTO_INCREMENT)
     conn.commit()
     conn.close()
-    return {"mensagem": "Agendamento atualizado com sucesso"}
+    return {"mensagem": "Agendamento cadastrado com sucesso", "idagendamento": novo_id}
 
 # DELETE /agendamentos/{id} — vai deletar um agendamento 
 @router.delete("/agendamentos/{id}")

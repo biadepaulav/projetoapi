@@ -1,4 +1,4 @@
-onst API = 'http://127.0.0.1:8000'
+const API = 'http://127.0.0.1:8000'
 
 // elementos do formulário e do botão de enviar
 const formSenioridade = document.getElementById('form-senioridade')
