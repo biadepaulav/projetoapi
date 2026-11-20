@@ -14,7 +14,7 @@ class Cliente(BaseModel):
     cidade: Optional[str] = None        # opcional
     uf: Optional[str] = None            # opcional
 
-@router.get("/clientes")
+@router.get("")
 def listar_clientes():
     conn = conectar()                        # abre conexão
     cursor = conn.cursor(dictionary=True)    # retorna dicionários em vez de tuplas
@@ -23,7 +23,7 @@ def listar_clientes():
     conn.close()                             # fecha a conexão
     return clientes                          # retorna a lista em JSON
 
-@router.get("/clientes/{id}")
+@router.get("/{id}")
 def buscar_cliente(id: int):
     conn = conectar()
     cursor = conn.cursor(dictionary=True)
@@ -34,7 +34,7 @@ def buscar_cliente(id: int):
         return {"erro": "Cliente não encontrado"}
     return cliente
 
-@router.post("/clientes")
+@router.post("")
 def criar_cliente(cliente: Cliente):   # recebe os dados no corpo da requisição
     conn = conectar()
     cursor = conn.cursor()
@@ -49,7 +49,7 @@ def criar_cliente(cliente: Cliente):   # recebe os dados no corpo da requisiçã
     return {"mensagem": "Cliente cadastrado com sucesso"}
 
 # PUT /clientes/{id} — atualiza um cliente existente
-@router.put("/clientes/{id}")
+@router.put("/{id}")
 def atualizar_cliente(id: int, cliente: Cliente):
     conn = conectar()
     cursor = conn.cursor()
@@ -64,7 +64,7 @@ def atualizar_cliente(id: int, cliente: Cliente):
     conn.close()
     return {"mensagem": "Cliente atualizado com sucesso"}
 
-@router.delete("/clientes/{id}")
+@router.delete("/{id}")
 def deletar_cliente(id: int):
     conn = conectar()
     cursor = conn.cursor()
